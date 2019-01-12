@@ -39,7 +39,6 @@ void stroke_hex(int stroke_width) {
 }
 
 void render_grid(Grid* grid, float stroke_width) {
-
     for (int q = -grid->offset; q <= grid->offset; q++) {
         for (int r = -grid->offset; r <= grid->offset; r++) {
             glPushMatrix();
@@ -52,6 +51,22 @@ void render_grid(Grid* grid, float stroke_width) {
             glPopMatrix();
         }
     }
+}
+
+void outline_origin(int stroke_width) {
+    glLineWidth(stroke_width);
+
+    glBegin(GL_LINE_LOOP);
+
+    glColor4f(0.0f, 1.0f, 0.0f, 1.0f);
+
+    for (int i = 0; i < 6; i++) {
+        float theta = (M_PI / 3.0f) * i;
+
+        glVertex2f(cosf(theta), sinf(theta));
+    }
+
+    glEnd();
 }
 
 float lerp(float a, float b, float t) {
@@ -173,6 +188,7 @@ int main() {
         float line_thickness = 20.0f * ((pixels_per_meter - MIN_PPM) / (MAX_PPM - MIN_PPM)) + 2.0f;
 
         render_grid(grid, line_thickness);
+        outline_origin(line_thickness);
 
         SDL_GL_SwapWindow(window);
     }
