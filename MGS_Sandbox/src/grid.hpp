@@ -11,6 +11,14 @@ struct Grid {
     int offset;
 
     float* grid;
+
+    float get(int q, int r) {
+        return grid[(q + offset) * size + (r + offset)];
+    }
+
+    void set(int q, int r, float val) {
+        grid[(q + offset) * size + (r + offset)] = val;
+    }
 };
 
 // Creates a rhombus large enough to support a circle with the given radius.

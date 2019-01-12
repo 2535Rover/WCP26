@@ -8,22 +8,10 @@
 
 const int WINDOW_WIDTH = 800, WINDOW_HEIGHT = 800;
 
-void fill_hex(int center_x, int center_y, int size) {
+void fill_hex(float shade) {
     glBegin(GL_POLYGON);
 
-    for (int i = 0; i < 6; i++) {
-        float theta = (M_PI / 3.0f) * i;
-
-        glVertex2f(center_x + size * cosf(theta), center_y + size * sinf(theta));
-    }
-
-    glEnd();
-}
-
-void stroke_hex(int stroke_width) {
-    glLineWidth(stroke_width);
-
-    glBegin(GL_LINE_LOOP);
+    glColor4f(shade, shade, shade, 1.0f);
 
     for (int i = 0; i < 6; i++) {
         float theta = (M_PI / 3.0f) * i;
@@ -34,7 +22,23 @@ void stroke_hex(int stroke_width) {
     glEnd();
 }
 
-void stroke_grid_outline(Grid* grid, float stroke_width) {
+void stroke_hex(int stroke_width) {
+    glLineWidth(stroke_width);
+
+    glBegin(GL_LINE_LOOP);
+
+    glColor4f(1.0f, 0.0f, 0.0f, 1.0f);
+
+    for (int i = 0; i < 6; i++) {
+        float theta = (M_PI / 3.0f) * i;
+
+        glVertex2f(cosf(theta), sinf(theta));
+    }
+
+    glEnd();
+}
+
+void render_grid(Grid* grid, float stroke_width) {
 
     for (int q = -grid->offset; q <= grid->offset; q++) {
         for (int r = -grid->offset; r <= grid->offset; r++) {
@@ -42,6 +46,7 @@ void stroke_grid_outline(Grid* grid, float stroke_width) {
 
             glTranslatef((3.0f/2.0f) * q, (sqrtf(3.0f)/2.0f) * q + sqrtf(3.0f) * r, 0.0f);
 
+            fill_hex(1.0f - grid->get(q, r));
             stroke_hex(stroke_width);
 
             glPopMatrix();
@@ -98,6 +103,8 @@ int main() {
     float pixels_per_meter = 30.0f;
 
     Grid* grid = create_grid(15);
+
+    grid->set(0, 0, 0.5f);
 
     float translate_x = WINDOW_WIDTH/2.0f, translate_y = WINDOW_HEIGHT/2.0f;
 
@@ -246,8 +253,7 @@ int main() {
 
         float line_thickness = 20.0f * ((pixels_per_meter - MIN_PPM) / (MAX_PPM - MIN_PPM)) + 2.0f;
 
-        glColor3f(1.0f, 0.0f, 0.0f);
-        stroke_grid_outline(grid, line_thickness);
+        render_grid(grid, line_thickness);
 
         SDL_GL_SwapWindow(window);
     }
