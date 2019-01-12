@@ -54,16 +54,6 @@ void render_grid(Grid* grid, float stroke_width) {
     }
 }
 
-enum class MovementDirection {
-    UP, DOWN, LEFT, RIGHT
-};
-
-struct MovementStatus {
-    bool pressed;
-
-    uint32_t time_pressed;
-};
-
 float lerp(float a, float b, float t) {
     return (1.0f - t) * a + t * b;
 }
@@ -108,10 +98,6 @@ int main() {
 
     float translate_x = WINDOW_WIDTH/2.0f, translate_y = WINDOW_HEIGHT/2.0f;
 
-    float movement_speed = 5.0f;
-
-    MovementStatus movement[4]{};
-
     bool mouse_down = false;
 
     for (;;) {
@@ -127,38 +113,6 @@ int main() {
             if (event.type == SDL_KEYDOWN) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) {
                     should_quit = true;
-                    break;
-                }
-
-                switch (event.key.keysym.sym) {
-                case SDLK_s:
-                    movement[(int)MovementDirection::UP] = { true, SDL_GetTicks() };
-                    break;
-                 case SDLK_w:
-                    movement[(int)MovementDirection::DOWN] = { true, SDL_GetTicks() };
-                    break;
-                case SDLK_d:
-                    movement[(int)MovementDirection::LEFT] = { true, SDL_GetTicks() };
-                    break;
-                case SDLK_a:
-                    movement[(int)MovementDirection::RIGHT] = { true, SDL_GetTicks() };
-                    break;
-                }
-            }
-
-            if (event.type == SDL_KEYUP) {
-                switch (event.key.keysym.sym) {
-                case SDLK_s:
-                    movement[(int)MovementDirection::UP] = { false, 0 };
-                    break;
-                case SDLK_w:
-                    movement[(int)MovementDirection::DOWN] = { false, 0 };
-                    break;
-                case SDLK_d:
-                    movement[(int)MovementDirection::LEFT] = { false, 0 };
-                    break;
-                case SDLK_a:
-                    movement[(int)MovementDirection::RIGHT] = { false, 0 };
                     break;
                 }
             }
@@ -206,41 +160,6 @@ int main() {
         }
 
         if (should_quit) break;
-
-        {
-            MovementStatus up_status = movement[(int)MovementDirection::UP];
-            MovementStatus down_status = movement[(int)MovementDirection::DOWN];
-            MovementStatus left_status = movement[(int)MovementDirection::LEFT];
-            MovementStatus right_status = movement[(int)MovementDirection::RIGHT];
-
-            if (up_status.pressed) {
-                if (down_status.pressed) {
-                    translate_y += up_status.time_pressed > down_status.time_pressed ? -movement_speed : movement_speed;
-                } else {
-                    translate_y += -movement_speed;
-                }
-            } else if (down_status.pressed) {
-                if (up_status.pressed) {
-                    translate_y += up_status.time_pressed > down_status.time_pressed ? -movement_speed : movement_speed;
-                } else {
-                    translate_y += movement_speed;
-                }
-            }
-
-            if (left_status.pressed) {
-                if (right_status.pressed) {
-                    translate_x += left_status.time_pressed > right_status.time_pressed ? -movement_speed : movement_speed;
-                } else {
-                    translate_x += -movement_speed;
-                }
-            } else if (right_status.pressed) {
-                if (left_status.pressed) {
-                    translate_x += left_status.time_pressed > right_status.time_pressed ? -movement_speed : movement_speed;
-                } else {
-                    translate_x += movement_speed;
-                }
-            }
-        }
 
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
