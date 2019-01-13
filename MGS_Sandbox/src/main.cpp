@@ -69,6 +69,39 @@ void outline_origin(int stroke_width) {
     glEnd();
 }
 
+void render_rover(float rover_x, float rover_y, const float rover_width, const float rover_height, float rover_angle) {
+    glPushMatrix();
+
+    glTranslatef(rover_x, rover_y, 0.0f);
+    glRotatef(rover_angle, 0.0f, 0.0f, -1.0f);
+    glScalef(rover_width, rover_height, 1.0f);
+
+    glBegin(GL_QUADS);
+
+    glColor4f(0.0f, 0.0f, 1.0f, 1.0f);
+
+    glVertex2f(0.5f, 0.5f);
+    glVertex2f(0.5f, -0.5f);
+    glVertex2f(-0.5f, -0.5f);
+    glVertex2f(-0.5f, 0.5f);
+
+    glEnd();
+
+    // Draw the "arrow".
+
+    glBegin(GL_TRIANGLES);
+
+    glColor4f(0.0f, 1.0f, 0.0f, 1.0f);
+
+    glVertex2f(0.0f, 0.25f);
+    glVertex2f(-0.25f, 0.0f);
+    glVertex2f(0.25f, 0.0f);
+
+    glEnd();
+
+    glPopMatrix();
+}
+
 float lerp(float a, float b, float t) {
     return (1.0f - t) * a + t * b;
 }
@@ -109,7 +142,12 @@ int main() {
 
     Grid* grid = create_grid(15);
 
-    grid->set(0, 0, 0.5f);
+    const float ROVER_WIDTH = 1.0f;
+    const float ROVER_HEIGHT = 1.5f;
+
+    const float rover_angle = -180.0f;
+
+    float rover_x = 0, rover_y = 0;
 
     float translate_x = WINDOW_WIDTH/2.0f, translate_y = WINDOW_HEIGHT/2.0f;
 
@@ -183,12 +221,20 @@ int main() {
         glLoadIdentity();
         glTranslatef(translate_x, translate_y, 0.0f);
         glScalef(pixels_per_meter, pixels_per_meter, 1.0f);
-        glScalef(grid_size, grid_size, 1.0f);
 
-        float line_thickness = 20.0f * ((pixels_per_meter - MIN_PPM) / (MAX_PPM - MIN_PPM)) + 2.0f;
+        {
+            glPushMatrix();
+            glScalef(grid_size, grid_size, 1.0f);
 
-        render_grid(grid, line_thickness);
-        outline_origin(line_thickness);
+            float line_thickness = 20.0f * ((pixels_per_meter - MIN_PPM) / (MAX_PPM - MIN_PPM)) + 2.0f;
+
+            render_grid(grid, line_thickness);
+            outline_origin(line_thickness);
+
+            glPopMatrix();
+        }
+
+        render_rover(rover_x, rover_y, ROVER_WIDTH, ROVER_HEIGHT, rover_angle);
 
         SDL_GL_SwapWindow(window);
     }
