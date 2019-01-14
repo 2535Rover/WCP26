@@ -182,7 +182,10 @@ int main() {
 
     obstacles.push_back({ 0, -5, 2, 1 });
 
-    bool mouse_down = false;
+    bool right_mouse_down = false;
+
+    Obstacle drag_obstacle;
+    bool dragging = false;
 
     for (;;) {
         bool should_quit = false;
@@ -198,6 +201,12 @@ int main() {
                 if (event.key.keysym.sym == SDLK_ESCAPE) {
                     should_quit = true;
                     break;
+                } else if (event.key.keysym.sym == SDLK_u) {
+                    if (obstacles.size() != 0) {
+                        printf("> Undoing last placed obstacle.\n");
+
+                        obstacles.pop_back();
+                    }
                 }
             }
 
@@ -225,20 +234,60 @@ int main() {
 
             if (event.type == SDL_MOUSEBUTTONDOWN) {
                 if (event.button.button == SDL_BUTTON_RIGHT) {
-                    mouse_down = true;
+                    if (dragging) {
+                        printf("[!] Cancelling drag.\n");
+
+                        dragging = false;
+                    } else {
+                        right_mouse_down = true;
+                    }
+                } else if (event.button.button == SDL_BUTTON_LEFT) {
+                    dragging = true;
+
+                    int mx, my;
+                    SDL_GetMouseState(&mx, &my);
+
+                    float fmx = mx, fmy = my;
+
+                    drag_obstacle.x = (fmx - translate_x) / pixels_per_meter;
+                    drag_obstacle.y = (fmy - translate_y) / pixels_per_meter;
+
+                    drag_obstacle.w = 0;
+                    drag_obstacle.h = 0;
                 }
             }
 
             if (event.type == SDL_MOUSEBUTTONUP) {
                 if (event.button.button == SDL_BUTTON_RIGHT) {
-                    mouse_down = false;
+                    right_mouse_down = false;
+                } else if (event.button.button == SDL_BUTTON_LEFT && dragging) {
+                    dragging = false;
+
+                    if (drag_obstacle.w < 1e-6 || drag_obstacle.h < 1e-6) {
+                        printf("[!] Not adding an obstacle: too small!\n");
+                    } else {
+                        obstacles.push_back(drag_obstacle);                        
+                    }
                 }
             }
 
             if (event.type == SDL_MOUSEMOTION) {
-                if (mouse_down) {
+                if (right_mouse_down) {
                     translate_x += event.motion.xrel;
                     translate_y += event.motion.yrel;
+                }
+
+                if (dragging) {
+                    int mx, my;
+                    SDL_GetMouseState(&mx, &my);
+
+                    float fmx = mx, fmy = my;
+
+                    float world_x = (fmx - translate_x) / pixels_per_meter;
+                    float world_y = (fmy - translate_y) / pixels_per_meter;
+
+                    drag_obstacle.w = 2 * fabsf(world_x - drag_obstacle.x);
+                    drag_obstacle.h = 2 * fabsf(world_y - drag_obstacle.y);
                 }
             }
         }
@@ -265,6 +314,10 @@ int main() {
             outline_origin(line_thickness);
 
             glPopMatrix();
+        }
+
+        if (dragging) {
+            render_obstacle(&drag_obstacle);
         }
 
         for (Obstacle obs : obstacles) {
