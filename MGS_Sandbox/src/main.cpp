@@ -167,7 +167,7 @@ int main() {
     const float MAX_PPM = 200.0f;
     float pixels_per_meter = 30.0f;
 
-    Grid* grid = create_grid(50);
+    Grid* grid = create_grid(10);
 
     const float ROVER_WIDTH = 1.0f;
     const float ROVER_HEIGHT = 1.5f;
@@ -176,7 +176,7 @@ int main() {
 
     float rover_x = 0, rover_y = 0;
 
-    float translate_x = WINDOW_WIDTH/2.0f, translate_y = WINDOW_HEIGHT/2.0f;
+    float translate_x = (WINDOW_WIDTH/2.0f)/pixels_per_meter, translate_y = (WINDOW_HEIGHT/2.0f)/pixels_per_meter;
 
     std::vector<Obstacle> obstacles;
 
@@ -210,12 +210,19 @@ int main() {
                 } else if (event.key.keysym.sym == SDLK_r) {
                     printf("> Resetting camera position.\n");
 
-                    translate_x = WINDOW_WIDTH/2.0f, translate_y = WINDOW_HEIGHT/2.0f;
+                    translate_x = (WINDOW_WIDTH/2.0f)/pixels_per_meter;
+                    translate_y = (WINDOW_HEIGHT/2.0f)/pixels_per_meter;
                 }
             }
 
             if (event.type == SDL_MOUSEWHEEL) {
-                //float old_ppm = pixels_per_meter;
+                //float old_ppm = pixels_per_meter;  
+
+                int mx, my;
+                SDL_GetMouseState(&mx, &my);
+
+                float old_x = (mx - translate_x)/pixels_per_meter;
+                float old_y = (my - translate_y)/pixels_per_meter;              
 
                 if (event.wheel.y > 0) {
                     // Zoom in.
@@ -234,6 +241,12 @@ int main() {
                 if (pixels_per_meter > MAX_PPM) {
                     pixels_per_meter = MAX_PPM;
                 }
+
+                float new_x = (mx - translate_x)/pixels_per_meter;
+                float new_y = (my - translate_y)/pixels_per_meter;    
+
+                translate_x += new_x - old_x;
+                translate_y += new_y - old_y;
             }
 
             if (event.type == SDL_MOUSEBUTTONDOWN) {
@@ -277,8 +290,8 @@ int main() {
 
             if (event.type == SDL_MOUSEMOTION) {
                 if (right_mouse_down) {
-                    translate_x += event.motion.xrel;
-                    translate_y += event.motion.yrel;
+                    translate_x += event.motion.xrel/pixels_per_meter;
+                    translate_y += event.motion.yrel/pixels_per_meter;
                 }
 
                 if (dragging) {
@@ -290,8 +303,8 @@ int main() {
                     float world_x = (fmx - translate_x) / pixels_per_meter;
                     float world_y = (fmy - translate_y) / pixels_per_meter;
 
-                    drag_obstacle.w = 2 * fabsf(world_x - drag_obstacle.x);
-                    drag_obstacle.h = 2 * fabsf(world_y - drag_obstacle.y);
+                    drag_obstacle.w = 2.0f * fabsf(world_x - drag_obstacle.x);
+                    drag_obstacle.h = 2.0f * fabsf(world_y - drag_obstacle.y);
                 }
             }
         }
@@ -303,8 +316,8 @@ int main() {
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        glTranslatef(translate_x, translate_y, 0.0f);
         glScalef(pixels_per_meter, pixels_per_meter, 1.0f);
+        glTranslatef(translate_x, translate_y, 0.0f);
 
         {
             // Grid display.
