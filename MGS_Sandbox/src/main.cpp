@@ -1,6 +1,8 @@
 #include <math.h>
 #include <stdint.h>
 
+#include <vector>
+
 #include <GL/gl.h>
 #include <SDL.h>
 
@@ -102,6 +104,31 @@ void render_rover(float rover_x, float rover_y, const float rover_width, const f
     glPopMatrix();
 }
 
+struct Obstacle {
+    float x, y, w, h;
+};
+
+void render_obstacle(Obstacle* obstacle) {
+    glPushMatrix();
+
+    glTranslatef(obstacle->x, obstacle->y, 0.0f);
+
+    glScalef(obstacle->w, obstacle->h, 1.0f);
+
+    glColor4f(1.0f, 0.0f, 1.0f, 1.0f);
+
+    glBegin(GL_QUADS);
+
+    glVertex2f(0.5f, 0.5f);
+    glVertex2f(0.5f, -0.5f);
+    glVertex2f(-0.5f, -0.5f);
+    glVertex2f(-0.5f, 0.5f);
+
+    glEnd();
+
+    glPopMatrix();
+}
+
 float lerp(float a, float b, float t) {
     return (1.0f - t) * a + t * b;
 }
@@ -150,6 +177,10 @@ int main() {
     float rover_x = 0, rover_y = 0;
 
     float translate_x = WINDOW_WIDTH/2.0f, translate_y = WINDOW_HEIGHT/2.0f;
+
+    std::vector<Obstacle> obstacles;
+
+    obstacles.push_back({ 0, -5, 2, 1 });
 
     bool mouse_down = false;
 
@@ -223,6 +254,8 @@ int main() {
         glScalef(pixels_per_meter, pixels_per_meter, 1.0f);
 
         {
+            // Grid display.
+            
             glPushMatrix();
             glScalef(grid_size, grid_size, 1.0f);
 
@@ -232,6 +265,10 @@ int main() {
             outline_origin(line_thickness);
 
             glPopMatrix();
+        }
+
+        for (Obstacle obs : obstacles) {
+            render_obstacle(&obs);
         }
 
         render_rover(rover_x, rover_y, ROVER_WIDTH, ROVER_HEIGHT, rover_angle);
