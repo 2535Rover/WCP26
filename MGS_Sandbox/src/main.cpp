@@ -167,7 +167,7 @@ int main() {
     const float MAX_PPM = 200.0f;
     float pixels_per_meter = 30.0f;
 
-    Grid* grid = create_grid(15);
+    Grid* grid = create_grid(50);
 
     const float ROVER_WIDTH = 1.0f;
     const float ROVER_HEIGHT = 1.5f;
@@ -207,6 +207,10 @@ int main() {
 
                         obstacles.pop_back();
                     }
+                } else if (event.key.keysym.sym == SDLK_r) {
+                    printf("> Resetting camera position.\n");
+
+                    translate_x = WINDOW_WIDTH/2.0f, translate_y = WINDOW_HEIGHT/2.0f;
                 }
             }
 
