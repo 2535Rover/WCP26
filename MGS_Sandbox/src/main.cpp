@@ -221,8 +221,8 @@ int main() {
                 int mx, my;
                 SDL_GetMouseState(&mx, &my);
 
-                float old_x = (mx - translate_x)/pixels_per_meter;
-                float old_y = (my - translate_y)/pixels_per_meter;              
+                float old_x = (mx/pixels_per_meter) - translate_x;
+                float old_y = (my/pixels_per_meter) - translate_y;              
 
                 if (event.wheel.y > 0) {
                     // Zoom in.
@@ -242,8 +242,8 @@ int main() {
                     pixels_per_meter = MAX_PPM;
                 }
 
-                float new_x = (mx - translate_x)/pixels_per_meter;
-                float new_y = (my - translate_y)/pixels_per_meter;    
+                float new_x = (mx/pixels_per_meter) - translate_x;
+                float new_y = (my/pixels_per_meter) - translate_y;  
 
                 translate_x += new_x - old_x;
                 translate_y += new_y - old_y;
@@ -266,8 +266,8 @@ int main() {
 
                     float fmx = mx, fmy = my;
 
-                    drag_obstacle.x = (fmx - translate_x) / pixels_per_meter;
-                    drag_obstacle.y = (fmy - translate_y) / pixels_per_meter;
+                    drag_obstacle.x = (fmx / pixels_per_meter) - translate_x;
+                    drag_obstacle.y = (fmy / pixels_per_meter) - translate_y;
 
                     drag_obstacle.w = 0;
                     drag_obstacle.h = 0;
@@ -300,8 +300,8 @@ int main() {
 
                     float fmx = mx, fmy = my;
 
-                    float world_x = (fmx - translate_x) / pixels_per_meter;
-                    float world_y = (fmy - translate_y) / pixels_per_meter;
+                    float world_x = (fmx / pixels_per_meter) - translate_x;
+                    float world_y = (fmy / pixels_per_meter) - translate_y;
 
                     drag_obstacle.w = 2.0f * fabsf(world_x - drag_obstacle.x);
                     drag_obstacle.h = 2.0f * fabsf(world_y - drag_obstacle.y);
