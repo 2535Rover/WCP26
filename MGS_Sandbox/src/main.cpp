@@ -7,6 +7,7 @@
 #include <SDL.h>
 
 #include "grid.hpp"
+#include "obstacle.hpp"
 
 const int WINDOW_WIDTH = 800, WINDOW_HEIGHT = 800;
 
@@ -104,10 +105,6 @@ void render_rover(float rover_x, float rover_y, const float rover_width, const f
     glPopMatrix();
 }
 
-struct Obstacle {
-    float x, y, w, h;
-};
-
 void render_obstacle(Obstacle* obstacle) {
     glPushMatrix();
 
@@ -123,6 +120,30 @@ void render_obstacle(Obstacle* obstacle) {
     glVertex2f(0.5f, -0.5f);
     glVertex2f(-0.5f, -0.5f);
     glVertex2f(-0.5f, 0.5f);
+
+    glEnd();
+
+    glPopMatrix();
+}
+
+void render_lidar_range(float rover_x, float rover_y, float rover_angle) {
+    glPushMatrix();
+
+    glTranslatef(rover_x, rover_y, 0.0f);
+    glRotatef(rover_angle, 0.0f, 0.0f, -1.0f);
+    glScalef(10.0f, 10.0f, 1.0f);
+
+    glColor4f(1.0f, 0.564f, 0.141f, 0.75f);
+
+    glBegin(GL_TRIANGLE_FAN);
+
+    glVertex2f(0.0f, 0.0f);
+
+    for (int i = -45; i <= 225; i++) {
+        float theta = i * M_PI / 180.0f;
+
+        glVertex2f(cosf(theta), sinf(theta));
+    }
 
     glEnd();
 
@@ -341,6 +362,7 @@ int main() {
             render_obstacle(&obs);
         }
 
+        render_lidar_range(rover_x, rover_y, rover_angle);
         render_rover(rover_x, rover_y, ROVER_WIDTH, ROVER_HEIGHT, rover_angle);
 
         SDL_GL_SwapWindow(window);
