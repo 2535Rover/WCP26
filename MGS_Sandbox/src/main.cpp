@@ -150,6 +150,31 @@ void render_lidar_range(float rover_x, float rover_y, float rover_angle) {
     glPopMatrix();
 }
 
+void render_lidar_point(float rover_x, float rover_y, float rover_angle, float point_angle, float distance, float pixels_per_meter) {
+    glPushMatrix();
+
+    glTranslatef(rover_x, rover_y, 0.0f);
+    glRotatef(rover_angle, 0.0f, 0.0f, -1.0f);
+    glScalef(distance, distance, 1.0f);
+
+    glColor4f(0.0f, 1.0f, 0.0f, 1.0f);
+
+    glBegin(GL_QUADS);
+
+    float theta = point_angle * M_PI / 180.0f;
+
+    float hw = 2.0f / (pixels_per_meter * distance);
+
+    glVertex2f(cosf(theta) + hw, sinf(theta) + hw);
+    glVertex2f(cosf(theta) + hw, sinf(theta) - hw);
+    glVertex2f(cosf(theta) - hw, sinf(theta) - hw);
+    glVertex2f(cosf(theta) - hw, sinf(theta) + hw);
+
+    glEnd();
+
+    glPopMatrix();
+}
+
 float lerp(float a, float b, float t) {
     return (1.0f - t) * a + t * b;
 }
@@ -202,6 +227,8 @@ int main() {
     std::vector<Obstacle> obstacles;
 
     obstacles.push_back({ 0, -5, 2, 1 });
+
+    float lidar_points[271];
 
     bool right_mouse_down = false;
 
@@ -364,6 +391,13 @@ int main() {
 
         render_lidar_range(rover_x, rover_y, rover_angle);
         render_rover(rover_x, rover_y, ROVER_WIDTH, ROVER_HEIGHT, rover_angle);
+
+        lidar_scan(rover_x, rover_y, rover_angle, obstacles, lidar_points, 20.0f);
+        for (int i = -45; i <= 225; i++) {
+            float distance = lidar_points[i + 45];
+
+            if (distance <= 10.0f) render_lidar_point(rover_x, rover_y, rover_angle, i, distance, pixels_per_meter);
+        }
 
         SDL_GL_SwapWindow(window);
     }
