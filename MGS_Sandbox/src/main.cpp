@@ -179,7 +179,44 @@ float lerp(float a, float b, float t) {
     return (1.0f - t) * a + t * b;
 }
 
-int main() {
+void save_level(FILE* out_file, std::vector<Obstacle>& obstacles) {
+	for (Obstacle obs : obstacles) {
+		fprintf(out_file, "obstacle %f %f %f %f\n", obs.x, obs.y, obs.w, obs.h);
+	}
+}
+
+bool read_line(FILE* in_file, char* line) {
+	for (;;) {
+		char c;
+		fread(&c, 1, 1, in_file);
+
+		if (c == '\n') return true;
+		if (feof(in_file)) return false;
+
+		*line = c;
+		line++;
+	}
+}
+
+void load_level(FILE* in_file, std::vector<Obstacle>& obstacles) {
+	char line[1024];
+
+	while (true) {
+		if (!read_line(in_file, line)) break;
+
+		if (strncmp(line, "obstacle", 8) == 0) {
+			char* lptr = line + 8;
+			float x = strtof(lptr, &lptr);
+			float y = strtof(lptr, &lptr);
+			float w = strtof(lptr, &lptr);
+			float h = strtof(lptr, &lptr);
+
+			obstacles.push_back({ x, y, w, h });
+		}
+	}
+}
+
+int main(int argc, char** argv) {
     SDL_Init(SDL_INIT_VIDEO);
 
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
@@ -226,7 +263,12 @@ int main() {
 
     std::vector<Obstacle> obstacles;
 
-    obstacles.push_back({ 0, -5, 2, 1 });
+	if (argc > 1) {
+		FILE* in_file = fopen(argv[1], "r");
+		printf("> Loading level %s\n", argv[1]);
+		load_level(in_file, obstacles);
+		fclose(in_file);
+	}
 
     float lidar_points[271];
 
@@ -260,7 +302,13 @@ int main() {
 
                     translate_x = (WINDOW_WIDTH/2.0f)/pixels_per_meter;
                     translate_y = (WINDOW_HEIGHT/2.0f)/pixels_per_meter;
-                }
+                } else if (event.key.keysym.sym == SDLK_s) {
+					printf("> Saving current level.\n");
+
+					FILE* level_file = fopen("level.mgslevel", "w");
+					save_level(level_file, obstacles);
+					fclose(level_file);
+				}
             }
 
             if (event.type == SDL_MOUSEWHEEL) {
