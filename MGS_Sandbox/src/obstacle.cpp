@@ -74,22 +74,28 @@ void lidar_scan(float x, float y, float angle, std::vector<Obstacle>& obstacles,
                 }
             }
 
-            if (isnan(isect0_x)) {
-                // nothing.
-            } else {
-                assert(!isnan(isect0_x) && !isnan(isect0_y) && !isnan(isect1_x) && !isnan(isect1_y));
+			if (!isnan(isect0_x)) {
+                assert(!isnan(isect0_x) && !isnan(isect0_y)); // isect1 could be NAN still if the rectangle went beyond the max scan distance.
 
-                float d0_sq = (x - isect0_x)*(x - isect0_x) + (y - isect0_y)*(y - isect0_y);
-                float d1_sq = (x - isect1_x)*(x - isect1_x) + (y - isect1_y)*(y - isect1_y);
+				if (isnan(isect1_x)) {
+					float d0_sq = (x - isect0_x)*(x - isect0_x) + (y - isect0_y)*(y - isect0_y);
 
-                assert(d0_sq >= 0);
-                assert(d1_sq >= 0);
+					assert(d0_sq >= 0);
 
-                if (d0_sq < d1_sq) {
-                    if (d0_sq < min_sq) min_sq = d0_sq;
-                } else {
-                    if (d1_sq < min_sq) min_sq = d1_sq;
-                }
+					if (d0_sq < min_sq) min_sq = d0_sq;
+				} else {
+					float d0_sq = (x - isect0_x)*(x - isect0_x) + (y - isect0_y)*(y - isect0_y);
+					float d1_sq = (x - isect1_x)*(x - isect1_x) + (y - isect1_y)*(y - isect1_y);
+
+					assert(d0_sq >= 0);
+					assert(d1_sq >= 0);
+
+					if (d0_sq < d1_sq) {
+						if (d0_sq < min_sq) min_sq = d0_sq;
+					} else {
+						if (d1_sq < min_sq) min_sq = d1_sq;
+					}
+				}
             }
         }
 
