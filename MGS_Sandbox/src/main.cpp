@@ -250,7 +250,7 @@ int main(int argc, char** argv) {
     const float MAX_PPM = 200.0f;
     float pixels_per_meter = 30.0f;
 
-    Grid* grid = create_grid(10);
+    Grid* grid = create_grid(30);
 
     const float ROVER_WIDTH = 1.0f;
     const float ROVER_HEIGHT = 1.5f;
@@ -422,6 +422,7 @@ int main(int argc, char** argv) {
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
+		
         glScalef(pixels_per_meter, pixels_per_meter, 1.0f);
         glTranslatef(translate_x, translate_y, 0.0f);
 
