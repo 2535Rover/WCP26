@@ -274,6 +274,8 @@ int main(int argc, char** argv) {
 
     bool right_mouse_down = false;
 
+	bool display_grid = true;
+
     Obstacle drag_obstacle;
     bool dragging = false;
 
@@ -308,6 +310,8 @@ int main(int argc, char** argv) {
 					FILE* level_file = fopen("level.mgslevel", "w");
 					save_level(level_file, obstacles);
 					fclose(level_file);
+				} else if (event.key.keysym.sym == SDLK_g) {
+					display_grid = !display_grid;
 				}
             }
 
@@ -415,7 +419,7 @@ int main(int argc, char** argv) {
         glScalef(pixels_per_meter, pixels_per_meter, 1.0f);
         glTranslatef(translate_x, translate_y, 0.0f);
 
-        {
+        if (display_grid) {
             // Grid display.
             
             glPushMatrix();
