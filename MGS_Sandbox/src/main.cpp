@@ -276,6 +276,7 @@ int main(int argc, char** argv) {
 
 	bool display_grid = true;
 	bool display_lidar = true;
+	bool display_obstacles = true;
 
     Obstacle drag_obstacle;
     bool dragging = false;
@@ -315,6 +316,8 @@ int main(int argc, char** argv) {
 					display_grid = !display_grid;
 				} else if (event.key.keysym.sym == SDLK_l) {
 					display_lidar = !display_lidar;
+				} else if (event.key.keysym.sym == SDLK_o) {
+					display_obstacles = !display_obstacles;
 				}
             }
 
@@ -440,9 +443,11 @@ int main(int argc, char** argv) {
             render_obstacle(&drag_obstacle);
         }
 
-        for (Obstacle obs : obstacles) {
-            render_obstacle(&obs);
-        }
+		if (display_obstacles) {
+			for (Obstacle obs : obstacles) {
+				render_obstacle(&obs);
+			}
+		}
 
 
 		if (display_lidar) render_lidar_range(rover_x, rover_y, rover_angle);
