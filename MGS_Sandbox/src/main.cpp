@@ -250,7 +250,7 @@ int main(int argc, char** argv) {
     const float MAX_PPM = 200.0f;
     float pixels_per_meter = 30.0f;
 
-    Grid* grid = create_grid(10);
+    Grid* grid = create_grid(30);
 
     const float ROVER_WIDTH = 1.0f;
     const float ROVER_HEIGHT = 1.5f;
@@ -273,6 +273,10 @@ int main(int argc, char** argv) {
     float lidar_points[271];
 
     bool right_mouse_down = false;
+
+	bool display_grid = true;
+	bool display_lidar = true;
+	bool display_obstacles = true;
 
     Obstacle drag_obstacle;
     bool dragging = false;
@@ -308,6 +312,12 @@ int main(int argc, char** argv) {
 					FILE* level_file = fopen("level.mgslevel", "w");
 					save_level(level_file, obstacles);
 					fclose(level_file);
+				} else if (event.key.keysym.sym == SDLK_g) {
+					display_grid = !display_grid;
+				} else if (event.key.keysym.sym == SDLK_l) {
+					display_lidar = !display_lidar;
+				} else if (event.key.keysym.sym == SDLK_o) {
+					display_obstacles = !display_obstacles;
 				}
             }
 
@@ -412,10 +422,11 @@ int main(int argc, char** argv) {
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
+		
         glScalef(pixels_per_meter, pixels_per_meter, 1.0f);
         glTranslatef(translate_x, translate_y, 0.0f);
 
-        {
+        if (display_grid) {
             // Grid display.
             
             glPushMatrix();
@@ -433,19 +444,26 @@ int main(int argc, char** argv) {
             render_obstacle(&drag_obstacle);
         }
 
-        for (Obstacle obs : obstacles) {
-            render_obstacle(&obs);
-        }
+		if (display_obstacles) {
+			for (Obstacle obs : obstacles) {
+				render_obstacle(&obs);
+			}
+		}
 
-        render_lidar_range(rover_x, rover_y, rover_angle);
+
+		if (display_lidar) render_lidar_range(rover_x, rover_y, rover_angle);
+
         render_rover(rover_x, rover_y, ROVER_WIDTH, ROVER_HEIGHT, rover_angle);
 
         lidar_scan(rover_x, rover_y, rover_angle, obstacles, lidar_points, 20.0f);
-        for (int i = -45; i <= 225; i++) {
-            float distance = lidar_points[i + 45];
 
-            if (distance <= 10.0f) render_lidar_point(rover_x, rover_y, rover_angle, i, distance, pixels_per_meter);
-        }
+		if (display_lidar) {
+			for (int i = -45; i <= 225; i++) {
+				float distance = lidar_points[i + 45];
+
+				if (distance <= 10.0f) render_lidar_point(rover_x, rover_y, rover_angle, i, distance, pixels_per_meter);
+			}
+		}
 
         SDL_GL_SwapWindow(window);
     }
