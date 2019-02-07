@@ -11,6 +11,14 @@
 
 const int WINDOW_WIDTH = 800, WINDOW_HEIGHT = 800;
 
+struct OccupancyGrid {
+	float side_size;
+
+	int size;
+
+	int* data;
+};
+
 void fill_hex(float shade) {
     glBegin(GL_POLYGON);
 
@@ -126,6 +134,45 @@ void render_obstacle(Obstacle* obstacle) {
     glPopMatrix();
 }
 
+void render_occupancy_grid(OccupancyGrid* occupancy_grid, float rover_x, float rover_y, float rover_angle) {
+	int max = 1;
+	for (int i = 0; i < occupancy_grid->size * occupancy_grid->size; i++) {
+		if (occupancy_grid->data[i] > max) {
+			max = occupancy_grid->data[i];
+		}
+	}
+
+	glPushMatrix();
+
+	int hs = occupancy_grid->size / 2;
+
+	glTranslatef(rover_x, rover_y, 0.0f);
+	glRotatef(rover_angle, 0.0f, 0.0f, -1.0f);
+	glScalef(occupancy_grid->side_size, occupancy_grid->side_size, 1.0f);
+	glTranslatef(-hs, -hs, 0.0f);
+
+
+	for (int x = 0; x < occupancy_grid->size; x++) {
+		for (int y = 0; y < occupancy_grid->size; y++) {
+			int idx = y * occupancy_grid->size + x;
+
+			glColor4f(0.0f, 0.0f, 0.0f, (float)occupancy_grid->data[idx] / (float)max);
+			//glColor4f(0.0f, 0.0f, 0.0f, 0.25f);
+
+			glBegin(GL_QUADS);
+
+			glVertex2f(x, y);
+			glVertex2f(x + 1, y);
+			glVertex2f(x + 1, y + 1);
+			glVertex2f(x, y + 1);
+
+			glEnd();
+		}
+	}
+
+	glPopMatrix();
+}
+
 void render_lidar_range(float rover_x, float rover_y, float rover_angle) {
     glPushMatrix();
 
@@ -216,6 +263,18 @@ void load_level(FILE* in_file, std::vector<Obstacle>& obstacles) {
 	}
 }
 
+
+OccupancyGrid* create_occupancy_grid(float side_size, int size) {
+	OccupancyGrid* grid = new OccupancyGrid;
+
+	grid->side_size = side_size;
+	grid->size = size;
+
+	grid->data = new int[size * size];
+
+	return grid;
+}
+
 int main(int argc, char** argv) {
     SDL_Init(SDL_INIT_VIDEO);
 
@@ -252,12 +311,19 @@ int main(int argc, char** argv) {
 
     Grid* grid = create_grid(30);
 
+	const float OCC_GRID_SIDE_SIZE = 0.25f;
+	OccupancyGrid* occupancy_grid = create_occupancy_grid(OCC_GRID_SIDE_SIZE, ceilf(20.0f / OCC_GRID_SIDE_SIZE));
+
     const float ROVER_WIDTH = 1.0f;
     const float ROVER_HEIGHT = 1.5f;
+	const float ROVER_SPEED = 0.5f;
 
-    const float rover_angle = -180.0f;
+    float rover_angle = -180.0f;
 
     float rover_x = 0, rover_y = 0;
+
+	float rover_dangle = 0;
+	float rover_speed = 0;
 
     float translate_x = (WINDOW_WIDTH/2.0f)/pixels_per_meter, translate_y = (WINDOW_HEIGHT/2.0f)/pixels_per_meter;
 
@@ -277,6 +343,7 @@ int main(int argc, char** argv) {
 	bool display_grid = true;
 	bool display_lidar = true;
 	bool display_obstacles = true;
+	bool display_occupancy_grid = true;
 
     Obstacle drag_obstacle;
     bool dragging = false;
@@ -313,13 +380,39 @@ int main(int argc, char** argv) {
 					save_level(level_file, obstacles);
 					fclose(level_file);
 				} else if (event.key.keysym.sym == SDLK_g) {
-					display_grid = !display_grid;
+					auto mod_state = SDL_GetModState();
+
+					if (mod_state & KMOD_SHIFT) {
+						display_occupancy_grid = !display_occupancy_grid;
+					} else {
+						display_grid = !display_grid;
+					}
 				} else if (event.key.keysym.sym == SDLK_l) {
 					display_lidar = !display_lidar;
 				} else if (event.key.keysym.sym == SDLK_o) {
 					display_obstacles = !display_obstacles;
+				} else if (event.key.keysym.sym == SDLK_UP) {
+					rover_speed = -ROVER_SPEED / 5.0f;
+				} else if (event.key.keysym.sym == SDLK_DOWN) {
+					rover_speed = ROVER_SPEED / 5.0f;
+				} else if (event.key.keysym.sym == SDLK_LEFT) {
+					rover_dangle = ROVER_SPEED;
+				} else if (event.key.keysym.sym == SDLK_RIGHT) {
+					rover_dangle = -ROVER_SPEED;
 				}
             }
+
+			if (event.type == SDL_KEYUP) {
+				if (event.key.keysym.sym == SDLK_UP) {
+					rover_speed = 0;
+				} else if (event.key.keysym.sym == SDLK_DOWN) {
+					rover_speed = 0;
+				} else if (event.key.keysym.sym == SDLK_LEFT) {
+					rover_dangle = 0;
+				} else if (event.key.keysym.sym == SDLK_RIGHT) {
+					rover_dangle = 0;
+				}
+			}
 
             if (event.type == SDL_MOUSEWHEEL) {
                 //float old_ppm = pixels_per_meter;  
@@ -417,6 +510,10 @@ int main(int argc, char** argv) {
 
         if (should_quit) break;
 
+		rover_angle += rover_dangle;
+		rover_x += rover_speed * cosf((rover_angle + 90) * M_PI / 180.0f);
+		rover_y += rover_speed * sinf((rover_angle + 90) * M_PI / 180.0f);
+
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -457,13 +554,33 @@ int main(int argc, char** argv) {
 
         lidar_scan(rover_x, rover_y, rover_angle, obstacles, lidar_points, 20.0f);
 
-		if (display_lidar) {
-			for (int i = -45; i <= 225; i++) {
-				float distance = lidar_points[i + 45];
+		// Update the occupancy grid.
+		memset(occupancy_grid->data, 0, sizeof(int) * occupancy_grid->size * occupancy_grid->size);
 
-				if (distance <= 10.0f) render_lidar_point(rover_x, rover_y, rover_angle, i, distance, pixels_per_meter);
+		for (int i = -45; i <= 225; i++) {
+			float distance = lidar_points[i + 45];
+
+			if (distance <= 10.0f)  {
+				if (display_lidar) render_lidar_point(rover_x, rover_y, rover_angle, i, distance, pixels_per_meter);
+
+				// Add to occupancy grid.
+				// First, get position-centric cartesian coordinates.
+				float lp_x = distance * cosf((float)i * M_PI / 180.0f);
+				float lp_y = distance * sinf((float)i * M_PI / 180.0f);
+
+				lp_x += occupancy_grid->side_size * (occupancy_grid->size / 2);
+				lp_y += occupancy_grid->side_size * (occupancy_grid->size / 2);
+
+				// What grid cell?
+
+				int gc_x = lp_x / occupancy_grid->side_size;
+				int gc_y = lp_y / occupancy_grid->side_size;
+
+				occupancy_grid->data[gc_y * occupancy_grid->size + gc_x]++;
 			}
 		}
+
+		if (display_occupancy_grid) render_occupancy_grid(occupancy_grid, rover_x, rover_y, rover_angle);
 
         SDL_GL_SwapWindow(window);
     }
