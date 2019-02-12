@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <assert.h>
 
 #include <SDL.h>
 #include <turbojpeg.h>
@@ -149,7 +150,7 @@ void image_rgb_to_hsv(ImageRGB24 image, ImageHSVFloat res) {
 	}
 }
 
-// Produces a greyscale image from an HSV image.
+// Produces a grayscale image from an HSV image.
 void filter_image(ImageHSVFloat pixels, float min_hue, float max_hue, float min_sat, float max_sat, ImageGray out) {
 	for (int i = 0; i < IMAGE_WIDTH * IMAGE_HEIGHT; i++) {
 		float h = pixels[i * 3 + 0];
@@ -164,9 +165,9 @@ void filter_image(ImageHSVFloat pixels, float min_hue, float max_hue, float min_
 			out[i] = 0;
 		}
 
-		if (v < 0.5f) {
-			out[i] = 0;
-		}
+		// if (v < 0.2f || v > 0.8f) {
+		// 	out[i] = 0;
+		// }
 	}
 }
 
@@ -235,6 +236,18 @@ void threshold(ImageGray pixels, float threshold) {
 	}
 }
 
+void range(ImageGray pixels, float min, float max) {
+		for (int i = 0; i < IMAGE_WIDTH * IMAGE_HEIGHT; i++) {
+		uint8_t val = pixels[i];
+
+		if ((float)val > min * 255.0f && (float)val < max * 255.0f) {
+			pixels[i] = 255;
+		} else {
+			pixels[i] = 0;
+		}
+	}
+}
+
 void edge_detection(ImageGray pixels, float threshold) {
 	uint8_t* out = new uint8_t[IMAGE_WIDTH * IMAGE_HEIGHT];
 
@@ -282,7 +295,7 @@ void edge_detection(ImageGray pixels, float threshold) {
 	delete[] out;
 }
 
-void update_texture_grey(SDL_Texture* texture, ImageGray image_data) {
+void update_texture_gray(SDL_Texture* texture, ImageGray image_data) {
 	uint8_t* pixels;
 	int pitch;
 
@@ -452,7 +465,20 @@ void float_rgb_to_hsv(ImageRGBFloat image, ImageHSVFloat res) {
 	}
 }
 
+void extract_value(ImageHSVFloat in, ImageGray out) {
+	for (int i = 0; i < IMAGE_WIDTH * IMAGE_HEIGHT; i++) {
+		float s = in[i * 3 + 2];
+
+		out[i] = (uint8_t) (s * 255.0f);
+	}
+}
+
 int main(int argc, char** argv) {
+	if (argc < 2) {
+		fprintf(stderr, "[!] Please supply an image as a command line argument!\n");
+		return 1;
+	}
+
 	SDL_Init(SDL_INIT_VIDEO);
 	
 	SDL_Window* window = SDL_CreateWindow("Tennis Ball Detection", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, DISPLAY_WIDTH, DISPLAY_HEIGHT, 0);
@@ -461,29 +487,55 @@ int main(int argc, char** argv) {
 	
 	SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, IMAGE_WIDTH, IMAGE_HEIGHT);
 
-	//int x;
-	//int y;
-	//int channels;
-	//ImageRGB24 rgb_pixels = (ImageRGB24) stbi_load("urc_2017/0_9.jpg", &x, &y, &channels, 3); // C:\\Users\\Layne\\Pictures\\Tennis Ball Images\\p1_e0_cropped.jpg
+	int x;
+	int y;
+	int channels;
+	ImageRGB24 rgb_pixels = (ImageRGB24) stbi_load(argv[1], &x, &y, &channels, 3); // C:\\Users\\Layne\\Pictures\\Tennis Ball Images\\p1_e0_cropped.jpg
 	
-	ImageRGB24 rgb_pixels = new uint8_t[IMAGE_WIDTH * IMAGE_HEIGHT * 3];
+	assert(x == 1280 && y == 720);
+
+	// ImageRGB24 rgb_pixels = new uint8_t[IMAGE_WIDTH * IMAGE_HEIGHT * 3];
 	ImageRGBFloat rgb_float_pixels = new float[IMAGE_WIDTH * IMAGE_HEIGHT * 3];
 	ImageHSVFloat hsv_pixels = new float[IMAGE_WIDTH * IMAGE_HEIGHT * 3];
 	ImageGray gray_pixels = new uint8_t[IMAGE_WIDTH * IMAGE_HEIGHT];
 
+	{
+		image_rgb_to_float_rgb(rgb_pixels, rgb_float_pixels);
 
-	camera::CaptureSession session;
-	if (camera::open(&session, "/dev/video0", IMAGE_WIDTH, IMAGE_HEIGHT) != camera::Error::OK) {
-		fprintf(stderr, "[!] Failed to open camera!\n");
-		return 1;
+		float_rgb_to_hsv(rgb_float_pixels, hsv_pixels);
+
+		update_texture_hsv(texture, hsv_pixels);
+
+		filter_image(hsv_pixels, 70.0f, 110.0f, 0.4f, 1.0f, gray_pixels);
+
+		// extract_value(hsv_pixels, gray_pixels);
+
+		for (int i = 0; i < 8; i++) {
+			blur_image(gray_pixels, 5);
+		}
+
+		range(gray_pixels, 0.2f, 1.0f);
+
+		// threshold(gray_pixels, 0.2f);
+
+		edge_detection(gray_pixels, 0.4f);
+
+		update_texture_gray(texture, gray_pixels);
 	}
 
-	if (camera::start(&session) != camera::Error::OK) {
-		fprintf(stderr, "[!] Failed to start camera session!\n");
-		return 1;
-	}
 
-	tjhandle decompressor = tjInitDecompress();
+	// camera::CaptureSession session;
+	// if (camera::open(&session, "/dev/video0", IMAGE_WIDTH, IMAGE_HEIGHT) != camera::Error::OK) {
+	// 	fprintf(stderr, "[!] Failed to open camera!\n");
+	// 	return 1;
+	// }
+
+	// if (camera::start(&session) != camera::Error::OK) {
+	// 	fprintf(stderr, "[!] Failed to start camera session!\n");
+	// 	return 1;
+	// }
+
+	// tjhandle decompressor = tjInitDecompress();
 
 	bool show_gray = false;
 
@@ -510,51 +562,25 @@ int main(int argc, char** argv) {
 
 			if (event.type == SDL_KEYDOWN) {
 				if (event.key.keysym.sym == SDLK_1) {
-					show_gray = false;
+					update_texture_hsv(texture, hsv_pixels);
 				} else if (event.key.keysym.sym == SDLK_2) {
-					show_gray = true;
+					update_texture_gray(texture, gray_pixels);					
 				}
 			}
 		}
 
 		if (should_quit) break;
 
-		uint8_t* frame;
-		size_t size;
-		if (camera::grab_frame(&session, &frame, &size) != camera::Error::OK) {
-			fprintf(stderr, "[!] Failed to grab frame!\n");
-			return 1;
-		}
+		// uint8_t* frame;
+		// size_t size;
+		// if (camera::grab_frame(&session, &frame, &size) != camera::Error::OK) {
+		// 	fprintf(stderr, "[!] Failed to grab frame!\n");
+		// 	return 1;
+		// }
 
-		tjDecompress2(decompressor, frame, size, rgb_pixels, IMAGE_WIDTH, IMAGE_WIDTH * 3, IMAGE_HEIGHT, TJPF_RGB, 0);
+		// tjDecompress2(decompressor, frame, size, rgb_pixels, IMAGE_WIDTH, IMAGE_WIDTH * 3, IMAGE_HEIGHT, TJPF_RGB, 0);
 
-		camera::return_buffer(&session);
-
-		{
-			image_rgb_to_float_rgb(rgb_pixels, rgb_float_pixels);
-
-			float_rgb_to_hsv(rgb_float_pixels, hsv_pixels);
-
-			update_texture_hsv(texture, hsv_pixels);
-
-			filter_image(hsv_pixels, 40.0f, 100.0f, 0.4f, 1.0f, gray_pixels);
-
-			// Now we convert to grayscale.
-
-			for (int i = 0; i < 8; i++) {
-				blur_image(gray_pixels, 5);
-			}
-
-			threshold(gray_pixels, 0.2f);
-
-			edge_detection(gray_pixels, 0.4f);
-
-			if (show_gray) {
-				update_texture_grey(texture, gray_pixels);
-			} else {
-				update_texture_hsv(texture, hsv_pixels);
-			}
-		}
+		// camera::return_buffer(&session);
 
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 		SDL_RenderClear(renderer);
